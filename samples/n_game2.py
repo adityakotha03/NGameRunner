@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import List
+from typing import Dict, List
 
 from Box2D import b2ContactListener, b2PolygonShape, b2Vec2
 import pyray as rl
@@ -9,7 +9,7 @@ import pyray as rl
 from engine.framework import GameObject, Scene
 from engine.math_extensions import vec_add, vec_div, vec_mul, vec_sub, v2
 from engine.prefabs.components import (AnimationController, BodyComponent, MultiComponent, SoundComponent,
-                                       PlatformerMovementComponent, PlatformerMovementParams)
+                                       SpriteComponent, PlatformerMovementComponent, PlatformerMovementParams)
 from engine.prefabs.game_objects import CharacterParams, StaticBox
 from engine.prefabs.managers import FontManager
 from engine.prefabs.services import LevelService, PhysicsService, SoundService, TextureService
@@ -48,6 +48,7 @@ class NCharacter(GameObject):
         self.attack_display_timer = 0.0
         self.attack_display_duration = 0.1
         self.attack = False
+        self.has_won = False
 
     def init(self) -> None:
         """Initialize body, movement, sounds, and animations.
@@ -232,6 +233,22 @@ class NCharacter(GameObject):
             if self.attack_display_timer == 0.0:
                 self.attack = False
 
+        # Check if touching goal
+        if not self.has_won:
+            for contact_body in self.body.get_contacts():
+                other = contact_body.userData
+                if other and other.has_tag("goal"):
+                    self.has_won = True
+                    scene = self.scene
+                    if hasattr(scene, 'add_winner'):
+                        scene.add_winner(self.player_number)
+                    # Disappear the character
+                    self.is_active = False
+                    self.body.set_position(v2(-1000.0, -1000.0))
+                    self.body.set_velocity(v2(0.0, 0.0))
+                    self.body.disable()
+                    break
+
         if self.body.get_position_pixels().y > self.level.get_size().y + 200.0:
             self.body.set_position(self.p.position)
             self.body.set_velocity(v2(0.0, 0.0))
@@ -276,6 +293,57 @@ class NCharacter(GameObject):
                 if other == platform.body:
                     return False
         return True
+
+
+class Goal(GameObject):
+    """Goal/finish line that players can reach to win."""
+    def __init__(self, position: rl.Vector2, size: rl.Vector2) -> None:
+        """Create a goal trigger area.
+
+        Args:
+            position: Center position in pixels.
+            size: Width and height in pixels.
+
+        Returns:
+            None
+        """
+        super().__init__()
+        self.position = position
+        self.size = size
+        self.physics: PhysicsService = None  # type: ignore[assignment]
+        self.body: BodyComponent = None  # type: ignore[assignment]
+        self.sprite: SpriteComponent = None  # type: ignore[assignment]
+
+    def init(self) -> None:
+        """Initialize goal body as a sensor and add door sprite.
+
+        Returns:
+            None
+        """
+        self.physics = self.scene.get_service(PhysicsService)
+
+        def build_body(component: BodyComponent):
+            """Build body.
+
+            Args:
+                component: Parameter.
+
+            Returns:
+                Result of the operation.
+            """
+            world = self.physics.world
+            body = world.CreateStaticBody(position=(self.physics.convert_to_meters(self.position).x,
+                                                    self.physics.convert_to_meters(self.position).y))
+            body.userData = self
+            shape = b2PolygonShape(box=(self.physics.convert_length_to_meters(self.size.x / 2.0),
+                                        self.physics.convert_length_to_meters(self.size.y / 2.0)))
+            fixture = body.CreateFixture(shape=shape, density=0.0)
+            fixture.sensor = True
+            component.body = body
+
+        self.body = self.add_component(BodyComponent(build=build_body))
+        self.sprite = self.add_component(SpriteComponent("assets/ngamerunnerdoor.png", self.body))
+        self.sprite.scale = 2.0
 
 
 class NContactListener(b2ContactListener):
@@ -325,6 +393,11 @@ class NScene2(Scene):
         self.level: LevelService = None  # type: ignore[assignment]
         self.physics: PhysicsService = None  # type: ignore[assignment]
         self.renderer: rl.RenderTexture = None  # type: ignore[assignment]
+        self.font_manager: FontManager = None  # type: ignore[assignment]
+        self.winners: List[int] = []
+        self.winner_times: Dict[int, float] = {}
+        self.winner_display_duration = 3.0
+        self.goal: Goal = None  # type: ignore[assignment]
 
     def init_services(self) -> None:
         """Register services required by the scene.
@@ -337,6 +410,7 @@ class NScene2(Scene):
         self.physics = self.add_service(PhysicsService)
         collision_names = ["walls"]
         self.level = self.add_service(LevelService, "assets/levels/ngamerunnerlevel2.ldtk", "AutoLayer", collision_names)
+        self.font_manager = self.game.get_manager(FontManager)
 
     def init(self) -> None:
         """Create platforms, players, and render target.
@@ -366,8 +440,30 @@ class NScene2(Scene):
             character.add_tag("character")
             self.characters.append(character)
 
+        # Load goal entity
+        goal_entities = self.level.get_entities_by_name("Goal")
+        if goal_entities:
+            goal_entity = goal_entities[0]
+            position = self.level.convert_to_pixels(goal_entity.getPosition())
+            size = self.level.convert_to_pixels(goal_entity.getSize())
+            self.goal = self.add_game_object(Goal(vec_add(position, vec_div(size, 2.0)), size))
+            self.goal.add_tag("goal")
+
         self.level.set_layer_visibility("Background", False)
         self.renderer = rl.load_render_texture(int(self.level.get_size().x), int(self.level.get_size().y))
+
+    def add_winner(self, player_number: int) -> None:
+        """Add a player to the winners list.
+
+        Args:
+            player_number: Player number that reached the goal.
+
+        Returns:
+            None
+        """
+        if player_number not in self.winners:
+            self.winners.append(player_number)
+            self.winner_times[player_number] = 0.0
 
     def update(self, delta_time: float) -> None:
         """Update logic and scene transitions.
@@ -378,6 +474,13 @@ class NScene2(Scene):
         Returns:
             None
         """
+        # Update winner display timers
+        for player_num in list(self.winner_times.keys()):
+            self.winner_times[player_num] += delta_time
+            if self.winner_times[player_num] > self.winner_display_duration:
+                # Remove from display
+                del self.winner_times[player_num]
+        
         # Trigger scene change on Enter key or gamepad start button
         if rl.is_key_pressed(rl.KEY_ENTER) or rl.is_gamepad_button_pressed(0, rl.GAMEPAD_BUTTON_MIDDLE_RIGHT):
             self.game.go_to_scene_next()
@@ -400,3 +503,32 @@ class NScene2(Scene):
                        v2(0.0, 0.0),
                        0.0,
                        rl.Color(255, 255, 255, 255))
+
+        # Draw winner text (only for players still within display duration)
+        if self.winner_times:
+            player_colors = [
+                rl.Color(230, 41, 55, 255),   # Red for P1
+                rl.Color(0, 121, 241, 255),   # Blue for P2
+                rl.Color(253, 249, 0, 255),   # Yellow for P3
+                rl.Color(0, 228, 48, 255)     # Green for P4
+            ]
+            
+            y_offset = 50.0
+            for player_num in self.winner_times.keys():
+                color = player_colors[player_num - 1] if player_num - 1 < len(player_colors) else rl.WHITE
+                text = f"Player {player_num} Won!"
+                
+                # Draw text with shadow for better visibility
+                rl.draw_text_ex(self.font_manager.get_font("Roboto"),
+                           text,
+                           v2(float(rl.get_screen_width()) / 2.0 - 150.0 + 3.0, y_offset + 3.0),
+                           60.0,
+                           1.0,
+                           rl.BLACK)
+                rl.draw_text_ex(self.font_manager.get_font("Roboto"),
+                           text,
+                           v2(float(rl.get_screen_width()) / 2.0 - 150.0, y_offset),
+                           60.0,
+                           1.0,
+                           color)
+                y_offset += 70.0

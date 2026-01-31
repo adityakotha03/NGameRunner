@@ -9,7 +9,7 @@ import pyray as rl
 from engine.framework import GameObject, Scene
 from engine.math_extensions import vec_add, vec_div, vec_mul, vec_sub, v2
 from engine.prefabs.components import (AnimationController, BodyComponent, MultiComponent, SoundComponent,
-                                       PlatformerMovementComponent, PlatformerMovementParams)
+                                       SpriteComponent, PlatformerMovementComponent, PlatformerMovementParams)
 from engine.prefabs.game_objects import CharacterParams, StaticBox
 from engine.prefabs.managers import FontManager
 from engine.prefabs.services import LevelService, PhysicsService, SoundService, TextureService
@@ -312,9 +312,10 @@ class Goal(GameObject):
         self.size = size
         self.physics: PhysicsService = None  # type: ignore[assignment]
         self.body: BodyComponent = None  # type: ignore[assignment]
+        self.sprite: SpriteComponent = None  # type: ignore[assignment]
 
     def init(self) -> None:
-        """Initialize goal body as a sensor.
+        """Initialize goal body as a sensor and add door sprite.
 
         Returns:
             None
@@ -341,26 +342,8 @@ class Goal(GameObject):
             component.body = body
 
         self.body = self.add_component(BodyComponent(build=build_body))
-
-    def draw(self) -> None:
-        """Draw goal indicator.
-
-        Returns:
-            None
-        """
-        position = self.body.get_position_pixels()
-        # Draw a semi-transparent green rectangle
-        rl.draw_rectangle(int(position.x - self.size.x / 2),
-                         int(position.y - self.size.y / 2),
-                         int(self.size.x),
-                         int(self.size.y),
-                         rl.Color(50, 255, 50, 100))
-        # Draw border
-        rl.draw_rectangle_lines(int(position.x - self.size.x / 2),
-                               int(position.y - self.size.y / 2),
-                               int(self.size.x),
-                               int(self.size.y),
-                               rl.Color(50, 255, 50, 255))
+        self.sprite = self.add_component(SpriteComponent("assets/ngamerunnerdoor.png", self.body))
+        self.sprite.scale = 2.0
 
 
 class NContactListener(b2ContactListener):
