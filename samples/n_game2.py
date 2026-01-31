@@ -13,6 +13,31 @@ from engine.prefabs.components import (AnimationController, BodyComponent, Multi
 from engine.prefabs.game_objects import CharacterParams, StaticBox
 from engine.prefabs.managers import FontManager
 from engine.prefabs.services import LevelService, PhysicsService, SoundService, TextureService
+import random
+
+
+class BloodParticle:
+    """Simple blood particle effect."""
+    def __init__(self, position: rl.Vector2):
+        self.position = rl.Vector2(position.x, position.y)
+        angle = random.uniform(0, 2 * math.pi)
+        speed = random.uniform(50, 150)
+        self.velocity = rl.Vector2(math.cos(angle) * speed, math.sin(angle) * speed)
+        self.lifetime = random.uniform(0.3, 0.6)
+        self.max_lifetime = self.lifetime
+        self.size = random.uniform(3, 8)
+    
+    def update(self, delta_time: float) -> bool:
+        self.position.x += self.velocity.x * delta_time
+        self.position.y += self.velocity.y * delta_time
+        self.velocity.y += 300 * delta_time
+        self.lifetime -= delta_time
+        return self.lifetime > 0
+    
+    def draw(self):
+        alpha = int(255 * (self.lifetime / self.max_lifetime))
+        color = rl.Color(180, 0, 0, alpha)
+        rl.draw_circle_v(self.position, self.size, color)
 
 
 class NCharacter(GameObject):
@@ -254,6 +279,9 @@ class NCharacter(GameObject):
             other = contact_body.userData
             if other and other.has_tag("bomb"):
                 self.boom_sound.play()
+                scene = self.scene
+                if hasattr(scene, 'spawn_blood_particles'):
+                    scene.spawn_blood_particles(self.body.get_position_pixels())
                 self.body.set_position(self.p.position)
                 self.body.set_velocity(v2(0.0, 0.0))
                 break
@@ -466,6 +494,7 @@ class NScene2(Scene):
         self.clock_playing = False
         self.background_music = None  # type: ignore[assignment]
         self.music_playing = False
+        self.blood_particles: List[BloodParticle] = []
 
     def init_services(self) -> None:
         """Register services required by the scene.
@@ -495,6 +524,7 @@ class NScene2(Scene):
         self.player_completion_times = {}
         self.clock_playing = False
         self.music_playing = False
+        self.blood_particles = []
         
         platform_entities = self.level.get_entities_by_name("One_way_platform")
         for platform_entity in platform_entities:
@@ -559,6 +589,10 @@ class NScene2(Scene):
             if not hasattr(self.game, 'player_times_level2'):
                 self.game.player_times_level2 = {}
             self.game.player_times_level2[player_number] = self.elapsed_time
+    
+    def spawn_blood_particles(self, position: rl.Vector2) -> None:
+        for _ in range(15):
+            self.blood_particles.append(BloodParticle(position))
 
     def update(self, delta_time: float) -> None:
         """Update logic and scene transitions.
@@ -570,6 +604,8 @@ class NScene2(Scene):
             None
         """
         self.elapsed_time += delta_time
+        
+        self.blood_particles = [p for p in self.blood_particles if p.update(delta_time)]
         
         remaining_time = self.time_limit - self.elapsed_time
         
@@ -640,6 +676,8 @@ class NScene2(Scene):
         rl.clear_background(rl.MAGENTA)
         self.level.draw_layer("Background")
         super().draw_scene()
+        for particle in self.blood_particles:
+            particle.draw()
         rl.end_texture_mode()
 
         rl.draw_texture_pro(self.renderer.texture,
