@@ -11,7 +11,7 @@
 	"iid": "a48de660-d380-11f0-a69c-f18cbbf0556b",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 109,
+	"nextUid": 110,
 	"identifierStyle": "Capitalize",
 	"toc": [],
 	"worldLayout": "Free",
@@ -739,6 +739,41 @@
 			"pivotX": 0,
 			"pivotY": 0,
 			"fieldDefs": []
+		},
+		{
+			"identifier": "Goal",
+			"uid": 109,
+			"tags": [],
+			"exportToToc": false,
+			"allowOutOfBounds": false,
+			"doc": null,
+			"width": 16,
+			"height": 16,
+			"resizableX": false,
+			"resizableY": false,
+			"minWidth": null,
+			"maxWidth": null,
+			"minHeight": null,
+			"maxHeight": null,
+			"keepAspectRatio": false,
+			"tileOpacity": 1,
+			"fillOpacity": 1,
+			"lineOpacity": 1,
+			"hollow": false,
+			"color": "#D77643",
+			"renderMode": "Rectangle",
+			"showName": true,
+			"tilesetId": null,
+			"tileRenderMode": "FitInside",
+			"tileRect": null,
+			"uiTileRect": null,
+			"nineSliceBorders": [],
+			"maxCount": 0,
+			"limitScope": "PerLevel",
+			"limitBehavior": "MoveLastOne",
+			"pivotX": 0,
+			"pivotY": 0,
+			"fieldDefs": []
 		}
 	], "tilesets": [
 		{
@@ -1055,6 +1090,22 @@
 							"fieldInstances": [],
 							"__worldX": 224,
 							"__worldY": 128
+						},
+						{
+							"__identifier": "Goal",
+							"__grid": [1,5],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#D77643",
+							"iid": "bfb3b000-fa90-11f0-96ae-f593c734d125",
+							"width": 16,
+							"height": 16,
+							"defUid": 109,
+							"px": [16,80],
+							"fieldInstances": [],
+							"__worldX": 16,
+							"__worldY": 80
 						}
 					]
 				},
