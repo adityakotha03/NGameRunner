@@ -88,7 +88,7 @@ class NCharacter(GameObject):
         self.level = self.scene.get_service(LevelService)
 
         self.sounds = self.add_component(MultiComponent())
-        self.jump_sound = self.sounds.add_component("jump", SoundComponent, "assets/sounds/jump.wav")
+        self.jump_sound = self.sounds.add_component("jump", SoundComponent, "assets/sounds/jump.wav", 0.3)
         self.hit_sound = self.sounds.add_component("hit", SoundComponent, "assets/sounds/hit.wav")
         self.die_sound = self.sounds.add_component("die", SoundComponent, "assets/sounds/die.wav")
         self.boom_sound = self.sounds.add_component("boom", SoundComponent, "assets/sounds/Boom22.wav")
