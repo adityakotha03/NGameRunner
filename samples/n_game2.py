@@ -685,7 +685,7 @@ class NScene2(Scene):
         timer_font = self.font_manager.get_font("Tiny5")
         timer_size = 64
         timer_measured = rl.measure_text_ex(timer_font, timer_text, timer_size, 2)
-        timer_x = float(rl.get_screen_width()) - timer_measured.x - 20
+        timer_x = float(rl.get_screen_width()) / 2.0 - timer_measured.x / 2.0
         timer_y = 20.0
         
         timer_color = rl.RED if remaining_time < 20.0 else rl.WHITE
