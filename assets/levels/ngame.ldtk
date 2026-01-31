@@ -1127,22 +1127,6 @@
 							"__worldY": 128
 						},
 						{
-							"__identifier": "Goal",
-							"__grid": [1,5],
-							"__pivot": [0,0],
-							"__tags": [],
-							"__tile": null,
-							"__smartColor": "#D77643",
-							"iid": "bfb3b000-fa90-11f0-96ae-f593c734d125",
-							"width": 16,
-							"height": 16,
-							"defUid": 109,
-							"px": [16,80],
-							"fieldInstances": [],
-							"__worldX": 16,
-							"__worldY": 80
-						},
-						{
 							"__identifier": "Bomb",
 							"__grid": [14,20],
 							"__pivot": [0,0],
@@ -1189,6 +1173,22 @@
 							"fieldInstances": [],
 							"__worldX": 656,
 							"__worldY": 448
+						},
+						{
+							"__identifier": "Goal",
+							"__grid": [0,4],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": null,
+							"__smartColor": "#D77643",
+							"iid": "ef58f590-fa90-11f0-a2f0-0b25aa93aba3",
+							"width": 16,
+							"height": 16,
+							"defUid": 109,
+							"px": [15,73],
+							"fieldInstances": [],
+							"__worldX": 15,
+							"__worldY": 73
 						}
 					]
 				},

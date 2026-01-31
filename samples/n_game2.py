@@ -92,6 +92,7 @@ class NCharacter(GameObject):
         self.hit_sound = self.sounds.add_component("hit", SoundComponent, "assets/sounds/hit.wav")
         self.die_sound = self.sounds.add_component("die", SoundComponent, "assets/sounds/die.wav")
         self.boom_sound = self.sounds.add_component("boom", SoundComponent, "assets/sounds/Boom22.wav")
+        self.win_sound = self.sounds.add_component("win", SoundComponent, "assets/sounds/win.wav")
 
         self.animation = self.add_component(AnimationController(self.body))
         if self.player_number == 1:
@@ -234,29 +235,25 @@ class NCharacter(GameObject):
             if self.attack_display_timer == 0.0:
                 self.attack = False
 
-        # Check if touching goal
         if not self.has_won:
             for contact_body in self.body.get_contacts():
                 other = contact_body.userData
                 if other and other.has_tag("goal"):
                     self.has_won = True
+                    self.win_sound.play()
                     scene = self.scene
                     if hasattr(scene, 'add_winner'):
                         scene.add_winner(self.player_number)
-                    # Disappear the character
                     self.is_active = False
                     self.body.set_position(v2(-1000.0, -1000.0))
                     self.body.set_velocity(v2(0.0, 0.0))
                     self.body.disable()
                     break
 
-        # Check if touching bomb
         for contact_body in self.body.get_contacts():
             other = contact_body.userData
             if other and other.has_tag("bomb"):
-                # Play explosion sound
                 self.boom_sound.play()
-                # Respawn at starting position
                 self.body.set_position(self.p.position)
                 self.body.set_velocity(v2(0.0, 0.0))
                 break
@@ -462,6 +459,13 @@ class NScene2(Scene):
         self.winner_times: Dict[int, float] = {}
         self.winner_display_duration = 3.0
         self.goal: Goal = None  # type: ignore[assignment]
+        self.time_limit = 120.0  # 2 minutes
+        self.elapsed_time = 0.0
+        self.player_completion_times: Dict[int, float] = {}
+        self.clock_sound = None  # type: ignore[assignment]
+        self.clock_playing = False
+        self.background_music = None  # type: ignore[assignment]
+        self.music_playing = False
 
     def init_services(self) -> None:
         """Register services required by the scene.
@@ -482,6 +486,16 @@ class NScene2(Scene):
         Returns:
             None
         """
+        self.platforms = []
+        self.characters = []
+        self.bombs = []
+        self.winners = []
+        self.winner_times = {}
+        self.elapsed_time = 0.0
+        self.player_completion_times = {}
+        self.clock_playing = False
+        self.music_playing = False
+        
         platform_entities = self.level.get_entities_by_name("One_way_platform")
         for platform_entity in platform_entities:
             position = self.level.convert_to_pixels(platform_entity.getPosition())
@@ -504,7 +518,6 @@ class NScene2(Scene):
             character.add_tag("character")
             self.characters.append(character)
 
-        # Load goal entity
         goal_entities = self.level.get_entities_by_name("Goal")
         if goal_entities:
             goal_entity = goal_entities[0]
@@ -513,7 +526,6 @@ class NScene2(Scene):
             self.goal = self.add_game_object(Goal(vec_add(position, vec_div(size, 2.0)), size))
             self.goal.add_tag("goal")
 
-        # Load bomb entities
         bomb_entities = self.level.get_entities_by_name("Bomb")
         for bomb_entity in bomb_entities:
             position = self.level.convert_to_pixels(bomb_entity.getPosition())
@@ -524,6 +536,12 @@ class NScene2(Scene):
 
         self.level.set_layer_visibility("Background", False)
         self.renderer = rl.load_render_texture(int(self.level.get_size().x), int(self.level.get_size().y))
+        
+        sound_service = self.get_service(SoundService)
+        self.clock_sound = sound_service.get_sound("assets/sounds/clock.wav")
+        self.background_music = sound_service.get_sound("assets/sounds/level2.mp3")
+        rl.play_sound(self.background_music)
+        self.music_playing = True
 
     def add_winner(self, player_number: int) -> None:
         """Add a player to the winners list.
@@ -537,6 +555,10 @@ class NScene2(Scene):
         if player_number not in self.winners:
             self.winners.append(player_number)
             self.winner_times[player_number] = 0.0
+            self.player_completion_times[player_number] = self.elapsed_time
+            if not hasattr(self.game, 'player_times_level2'):
+                self.game.player_times_level2 = {}
+            self.game.player_times_level2[player_number] = self.elapsed_time
 
     def update(self, delta_time: float) -> None:
         """Update logic and scene transitions.
@@ -547,15 +569,61 @@ class NScene2(Scene):
         Returns:
             None
         """
-        # Update winner display timers
+        self.elapsed_time += delta_time
+        
+        if self.music_playing and not rl.is_sound_playing(self.background_music):
+            rl.play_sound(self.background_music)
+        
+        remaining_time = self.time_limit - self.elapsed_time
+        if remaining_time <= 20.0 and remaining_time > 0.0:
+            if not self.clock_playing:
+                rl.play_sound(self.clock_sound)
+                self.clock_playing = True
+            elif not rl.is_sound_playing(self.clock_sound):
+                rl.play_sound(self.clock_sound)
+        elif self.clock_playing:
+            rl.stop_sound(self.clock_sound)
+            self.clock_playing = False
+        
         for player_num in list(self.winner_times.keys()):
             self.winner_times[player_num] += delta_time
             if self.winner_times[player_num] > self.winner_display_duration:
-                # Remove from display
                 del self.winner_times[player_num]
         
-        # Trigger scene change on Enter key or gamepad start button
+        all_finished = len(self.player_completion_times) == len(self.characters)
+        if all_finished and len(self.characters) > 0:
+            if all(time > self.winner_display_duration for time in self.winner_times.values()) or not self.winner_times:
+                if self.clock_playing:
+                    rl.stop_sound(self.clock_sound)
+                    self.clock_playing = False
+                if self.music_playing:
+                    rl.stop_sound(self.background_music)
+                    self.music_playing = False
+                self.game.go_to_scene_next()
+                return
+        
+        if self.elapsed_time >= self.time_limit:
+            if self.clock_playing:
+                rl.stop_sound(self.clock_sound)
+                self.clock_playing = False
+            if self.music_playing:
+                rl.stop_sound(self.background_music)
+                self.music_playing = False
+            if not hasattr(self.game, 'player_times_level2'):
+                self.game.player_times_level2 = {}
+            for i, char in enumerate(self.characters):
+                player_num = i + 1
+                if player_num not in self.player_completion_times:
+                    self.game.player_times_level2[player_num] = -1.0
+            self.game.go_to_scene_next()
+        
         if rl.is_key_pressed(rl.KEY_ENTER) or rl.is_gamepad_button_pressed(0, rl.GAMEPAD_BUTTON_MIDDLE_RIGHT):
+            if self.clock_playing:
+                rl.stop_sound(self.clock_sound)
+                self.clock_playing = False
+            if self.music_playing:
+                rl.stop_sound(self.background_music)
+                self.music_playing = False
             self.game.go_to_scene_next()
 
     def draw_scene(self) -> None:
@@ -577,31 +645,46 @@ class NScene2(Scene):
                        0.0,
                        rl.Color(255, 255, 255, 255))
 
-        # Draw winner text (only for players still within display duration)
         if self.winner_times:
             player_colors = [
-                rl.Color(230, 41, 55, 255),   # Red for P1
-                rl.Color(0, 121, 241, 255),   # Blue for P2
-                rl.Color(253, 249, 0, 255),   # Yellow for P3
-                rl.Color(0, 228, 48, 255)     # Green for P4
+                rl.Color(230, 41, 55, 255),
+                rl.Color(0, 121, 241, 255),
+                rl.Color(253, 249, 0, 255),
+                rl.Color(0, 228, 48, 255)
             ]
             
+            font = self.font_manager.get_font("Tiny5")
+            text_size = 96
             y_offset = 50.0
+            
             for player_num in self.winner_times.keys():
                 color = player_colors[player_num - 1] if player_num - 1 < len(player_colors) else rl.WHITE
                 text = f"Player {player_num} Won!"
                 
-                # Draw text with shadow for better visibility
-                rl.draw_text_ex(self.font_manager.get_font("Roboto"),
-                           text,
-                           v2(float(rl.get_screen_width()) / 2.0 - 150.0 + 3.0, y_offset + 3.0),
-                           60.0,
-                           1.0,
-                           rl.BLACK)
-                rl.draw_text_ex(self.font_manager.get_font("Roboto"),
-                           text,
-                           v2(float(rl.get_screen_width()) / 2.0 - 150.0, y_offset),
-                           60.0,
-                           1.0,
-                           color)
-                y_offset += 70.0
+                measured = rl.measure_text_ex(font, text, text_size, 2)
+                text_x = float(rl.get_screen_width()) / 2.0 - measured.x / 2.0
+                
+                outline_offset = 3
+                for dx, dy in [(0, outline_offset), (outline_offset, 0), (0, -outline_offset), (-outline_offset, 0),
+                               (outline_offset, outline_offset), (-outline_offset, -outline_offset), 
+                               (outline_offset, -outline_offset), (-outline_offset, outline_offset)]:
+                    rl.draw_text_ex(font, text, v2(text_x + dx, y_offset + dy), text_size, 2, rl.BLACK)
+                
+                rl.draw_text_ex(font, text, v2(text_x, y_offset), text_size, 2, color)
+                y_offset += 110.0
+        
+        remaining_time = max(0.0, self.time_limit - self.elapsed_time)
+        minutes = int(remaining_time // 60)
+        seconds = int(remaining_time % 60)
+        timer_text = f"Time: {minutes}:{seconds:02d}"
+        
+        timer_font = self.font_manager.get_font("Tiny5")
+        timer_size = 64
+        timer_measured = rl.measure_text_ex(timer_font, timer_text, timer_size, 2)
+        timer_x = float(rl.get_screen_width()) - timer_measured.x - 20
+        timer_y = 20.0
+        
+        timer_color = rl.RED if remaining_time < 20.0 else rl.WHITE
+        for dx, dy in [(0, 2), (2, 0), (0, -2), (-2, 0)]:
+            rl.draw_text_ex(timer_font, timer_text, v2(timer_x + dx, timer_y + dy), timer_size, 2, rl.BLACK)
+        rl.draw_text_ex(timer_font, timer_text, v2(timer_x, timer_y), timer_size, 2, timer_color)

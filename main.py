@@ -8,6 +8,7 @@ from samples.zombie_game import ZombieScene
 from samples.title_screen import TitleScreen
 from samples.n_game import NScene
 from samples.n_game2 import NScene2
+from samples.leaderboard_screen import LeaderboardScreen
 
 game = Game()
 
@@ -32,6 +33,7 @@ def main() -> int:
     # game.add_scene("zombie", ZombieScene)
     game.add_scene("n", NScene)
     game.add_scene("n2", NScene2)
+    game.add_scene("leaderboard", LeaderboardScreen)
 
     while not rl.window_should_close():
         update()
