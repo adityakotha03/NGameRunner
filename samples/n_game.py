@@ -116,7 +116,7 @@ class NCharacter(GameObject):
         self.jump_sound = self.sounds.add_component("jump", SoundComponent, "assets/sounds/jump.wav", 0.3)
         self.hit_sound = self.sounds.add_component("hit", SoundComponent, "assets/sounds/hit.wav")
         self.die_sound = self.sounds.add_component("die", SoundComponent, "assets/sounds/die.wav")
-        self.boom_sound = self.sounds.add_component("boom", SoundComponent, "assets/sounds/Boom22.wav")
+        self.boom_sound = self.sounds.add_component("boom", SoundComponent, "assets/sounds/vineboom.mp3")
         self.win_sound = self.sounds.add_component("win", SoundComponent, "assets/sounds/win.wav")
 
         self.animation = self.add_component(AnimationController(self.body))
