@@ -91,6 +91,7 @@ class NCharacter(GameObject):
         self.jump_sound = self.sounds.add_component("jump", SoundComponent, "assets/sounds/jump.wav")
         self.hit_sound = self.sounds.add_component("hit", SoundComponent, "assets/sounds/hit.wav")
         self.die_sound = self.sounds.add_component("die", SoundComponent, "assets/sounds/die.wav")
+        self.boom_sound = self.sounds.add_component("boom", SoundComponent, "assets/sounds/Boom22.wav")
 
         self.animation = self.add_component(AnimationController(self.body))
         if self.player_number == 1:
@@ -249,6 +250,17 @@ class NCharacter(GameObject):
                     self.body.disable()
                     break
 
+        # Check if touching bomb
+        for contact_body in self.body.get_contacts():
+            other = contact_body.userData
+            if other and other.has_tag("bomb"):
+                # Play explosion sound
+                self.boom_sound.play()
+                # Respawn at starting position
+                self.body.set_position(self.p.position)
+                self.body.set_velocity(v2(0.0, 0.0))
+                break
+
         if self.body.get_position_pixels().y > self.level.get_size().y + 200.0:
             self.body.set_position(self.p.position)
             self.body.set_velocity(v2(0.0, 0.0))
@@ -346,6 +358,57 @@ class Goal(GameObject):
         self.sprite.scale = 2.0
 
 
+class Bomb(GameObject):
+    """Explosive bomb that makes players respawn when touched."""
+    def __init__(self, position: rl.Vector2, size: rl.Vector2) -> None:
+        """Create a bomb trigger area.
+
+        Args:
+            position: Center position in pixels.
+            size: Width and height in pixels.
+
+        Returns:
+            None
+        """
+        super().__init__()
+        self.position = position
+        self.size = size
+        self.physics: PhysicsService = None  # type: ignore[assignment]
+        self.body: BodyComponent = None  # type: ignore[assignment]
+        self.sprite: SpriteComponent = None  # type: ignore[assignment]
+
+    def init(self) -> None:
+        """Initialize bomb body as a sensor and add explosive sprite.
+
+        Returns:
+            None
+        """
+        self.physics = self.scene.get_service(PhysicsService)
+
+        def build_body(component: BodyComponent):
+            """Build body.
+
+            Args:
+                component: Parameter.
+
+            Returns:
+                Result of the operation.
+            """
+            world = self.physics.world
+            body = world.CreateStaticBody(position=(self.physics.convert_to_meters(self.position).x,
+                                                    self.physics.convert_to_meters(self.position).y))
+            body.userData = self
+            shape = b2PolygonShape(box=(self.physics.convert_length_to_meters(self.size.x / 2.0),
+                                        self.physics.convert_length_to_meters(self.size.y / 2.0)))
+            fixture = body.CreateFixture(shape=shape, density=0.0)
+            fixture.sensor = True
+            component.body = body
+
+        self.body = self.add_component(BodyComponent(build=build_body))
+        self.sprite = self.add_component(SpriteComponent("assets/ngamerunnerexplosive.png", self.body))
+        self.sprite.scale = 0.5
+
+
 class NContactListener(b2ContactListener):
     """Routes Box2D PreSolve callbacks to the owning character."""
     def __init__(self, scene: "NScene2") -> None:
@@ -390,6 +453,7 @@ class NScene2(Scene):
         super().__init__()
         self.platforms: List[StaticBox] = []
         self.characters: List[NCharacter] = []
+        self.bombs: List[Bomb] = []
         self.level: LevelService = None  # type: ignore[assignment]
         self.physics: PhysicsService = None  # type: ignore[assignment]
         self.renderer: rl.RenderTexture = None  # type: ignore[assignment]
@@ -448,6 +512,15 @@ class NScene2(Scene):
             size = self.level.convert_to_pixels(goal_entity.getSize())
             self.goal = self.add_game_object(Goal(vec_add(position, vec_div(size, 2.0)), size))
             self.goal.add_tag("goal")
+
+        # Load bomb entities
+        bomb_entities = self.level.get_entities_by_name("Bomb")
+        for bomb_entity in bomb_entities:
+            position = self.level.convert_to_pixels(bomb_entity.getPosition())
+            size = self.level.convert_to_pixels(bomb_entity.getSize())
+            bomb = self.add_game_object(Bomb(vec_add(position, vec_div(size, 2.0)), size))
+            bomb.add_tag("bomb")
+            self.bombs.append(bomb)
 
         self.level.set_layer_visibility("Background", False)
         self.renderer = rl.load_render_texture(int(self.level.get_size().x), int(self.level.get_size().y))
