@@ -286,7 +286,19 @@ class NCharacter(GameObject):
                 self.body.set_velocity(v2(0.0, 0.0))
                 break
 
-        if self.body.get_position_pixels().y > self.level.get_size().y + 200.0:
+        position = self.body.get_position_pixels()
+        level_width = self.level.get_size().x
+        
+        if position.x <= 0.0:
+            velocity = self.body.get_velocity_pixels()
+            self.body.set_position(v2(level_width, position.y))
+            self.body.set_velocity(velocity)
+        elif position.x >= level_width:
+            velocity = self.body.get_velocity_pixels()
+            self.body.set_position(v2(0.0, position.y))
+            self.body.set_velocity(velocity)
+        
+        if position.y > self.level.get_size().y + 200.0:
             self.body.set_position(self.p.position)
             self.body.set_velocity(v2(0.0, 0.0))
             self.die_sound.play()
@@ -505,7 +517,7 @@ class NScene3(Scene):
         self.add_service(SoundService)
         self.physics = self.add_service(PhysicsService)
         collision_names = ["walls"]
-        self.level = self.add_service(LevelService, "assets/levels/ngamerunnerlevel2.ldtk", "AutoLayer", collision_names)
+        self.level = self.add_service(LevelService, "assets/levels/ngamerunnerlevel3.ldtk", "Stamps", collision_names)
         self.font_manager = self.game.get_manager(FontManager)
 
     def init(self) -> None:
