@@ -543,7 +543,7 @@ class NScene(Scene):
         self.renderer = rl.load_render_texture(int(self.level.get_size().x), int(self.level.get_size().y))
         
         sound_service = self.get_service(SoundService)
-        self.clock_sound = sound_service.get_sound("assets/sounds/clock.wav")
+        self.clock_sound = sound_service.get_sound("assets/sounds/tick.mp3")
         self.background_music = sound_service.get_sound("assets/sounds/level1.mp3")
         rl.play_sound(self.background_music)
         self.music_playing = True
