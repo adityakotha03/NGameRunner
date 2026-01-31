@@ -28,18 +28,20 @@ class LeaderboardScreen(Scene):
         
         level1_times = getattr(self.game, 'player_times_level1', {})
         level2_times = getattr(self.game, 'player_times_level2', {})
-        all_players = set(level1_times.keys()) | set(level2_times.keys())
+        level3_times = getattr(self.game, 'player_times_level3', {})
+        all_players = set(level1_times.keys()) | set(level2_times.keys()) | set(level3_times.keys())
         
         results = []
         for player_num in all_players:
             time1 = level1_times.get(player_num, -1.0)
             time2 = level2_times.get(player_num, -1.0)
+            time3 = level3_times.get(player_num, -1.0)
             
-            if time1 < 0 or time2 < 0:
+            if time1 < 0 or time2 < 0 or time3 < 0:
                 total_time = -1.0
                 status = "DNF"
             else:
-                total_time = time1 + time2
+                total_time = time1 + time2 + time3
                 status = self.format_time(total_time)
             
             results.append({
@@ -47,7 +49,8 @@ class LeaderboardScreen(Scene):
                 'total_time': total_time,
                 'status': status,
                 'level1': self.format_time(time1) if time1 >= 0 else "DNF",
-                'level2': self.format_time(time2) if time2 >= 0 else "DNF"
+                'level2': self.format_time(time2) if time2 >= 0 else "DNF",
+                'level3': self.format_time(time3) if time3 >= 0 else "DNF"
             })
         
         results.sort(key=lambda x: (x['total_time'] < 0, x['total_time'] if x['total_time'] >= 0 else float('inf')))
@@ -78,6 +81,8 @@ class LeaderboardScreen(Scene):
                 delattr(self.game, 'player_times_level1')
             if hasattr(self.game, 'player_times_level2'):
                 delattr(self.game, 'player_times_level2')
+            if hasattr(self.game, 'player_times_level3'):
+                delattr(self.game, 'player_times_level3')
             self.game.go_to_scene(0)
 
     def draw(self):
@@ -132,7 +137,7 @@ class LeaderboardScreen(Scene):
             rl.draw_text_ex(self.font, text, v2(text_x, y_offset), text_size, 2, color)
             
             breakdown_size = 40
-            breakdown_text = f"L1: {result['level1']} | L2: {result['level2']}"
+            breakdown_text = f"L1: {result['level1']} | L2: {result['level2']} | L3: {result['level3']}"
             breakdown_measured = rl.measure_text_ex(self.font, breakdown_text, breakdown_size, 2)
             breakdown_x = (width - breakdown_measured.x) / 2
             
