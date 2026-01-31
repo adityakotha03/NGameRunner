@@ -28,9 +28,6 @@ def main() -> int:
     font_manager.set_texture_filter("Roboto", 4)
 
     game.add_scene("title", TitleScreen)
-    # game.add_scene("fighting", FightingScene)
-    # game.add_scene("collecting", CollectingScene)
-    # game.add_scene("zombie", ZombieScene)
     game.add_scene("n", NScene)
     game.add_scene("n2", NScene2)
     game.add_scene("leaderboard", LeaderboardScreen)
