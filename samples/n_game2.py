@@ -571,19 +571,23 @@ class NScene2(Scene):
         """
         self.elapsed_time += delta_time
         
-        if self.music_playing and not rl.is_sound_playing(self.background_music):
-            rl.play_sound(self.background_music)
-        
         remaining_time = self.time_limit - self.elapsed_time
+        
         if remaining_time <= 20.0 and remaining_time > 0.0:
+            if self.music_playing:
+                rl.stop_sound(self.background_music)
+                self.music_playing = False
             if not self.clock_playing:
                 rl.play_sound(self.clock_sound)
                 self.clock_playing = True
             elif not rl.is_sound_playing(self.clock_sound):
                 rl.play_sound(self.clock_sound)
-        elif self.clock_playing:
-            rl.stop_sound(self.clock_sound)
-            self.clock_playing = False
+        else:
+            if self.music_playing and not rl.is_sound_playing(self.background_music):
+                rl.play_sound(self.background_music)
+            if self.clock_playing:
+                rl.stop_sound(self.clock_sound)
+                self.clock_playing = False
         
         for player_num in list(self.winner_times.keys()):
             self.winner_times[player_num] += delta_time
