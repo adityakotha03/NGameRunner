@@ -336,7 +336,7 @@ class NScene(Scene):
         self.add_service(SoundService)
         self.physics = self.add_service(PhysicsService)
         collision_names = ["walls"]
-        self.level = self.add_service(LevelService, "assets/levels/fighting.ldtk", "Stage", collision_names)
+        self.level = self.add_service(LevelService, "assets/levels/ngame.ldtk", "Stage", collision_names)
 
     def init(self) -> None:
         """Create platforms, players, and render target.

@@ -17,7 +17,7 @@ def update() -> None:
 
 
 def main() -> int:
-    game.add_manager(WindowManager, 1280, 720, "Game Jam Kit")
+    game.add_manager(WindowManager, 1440, 1440, "Game Jam Kit")
     font_manager = game.add_manager(FontManager)
     game.init()
 
