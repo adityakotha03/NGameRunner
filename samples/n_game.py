@@ -113,7 +113,7 @@ class NCharacter(GameObject):
         self.level = self.scene.get_service(LevelService)
 
         self.sounds = self.add_component(MultiComponent())
-        self.jump_sound = self.sounds.add_component("jump", SoundComponent, "assets/sounds/jump.wav", 0.3)
+        self.jump_sound = self.sounds.add_component("jump", SoundComponent, "assets/sounds/jump.wav")
         self.hit_sound = self.sounds.add_component("hit", SoundComponent, "assets/sounds/hit.wav")
         self.die_sound = self.sounds.add_component("die", SoundComponent, "assets/sounds/die.wav")
         self.boom_sound = self.sounds.add_component("boom", SoundComponent, "assets/sounds/vineboom.mp3")
@@ -200,6 +200,7 @@ class NCharacter(GameObject):
         Returns:
             None
         """
+        self.jump_sound.set_volume(0.4)
         deadzone = 0.1
         jump_pressed = rl.is_key_pressed(rl.KEY_W) or rl.is_gamepad_button_pressed(self.gamepad, rl.GAMEPAD_BUTTON_RIGHT_FACE_DOWN)
         jump_held = rl.is_key_down(rl.KEY_W) or rl.is_gamepad_button_down(self.gamepad, rl.GAMEPAD_BUTTON_RIGHT_FACE_DOWN)
