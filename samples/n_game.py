@@ -280,7 +280,7 @@ class NCharacter(GameObject):
 
 class NContactListener(b2ContactListener):
     """Routes Box2D PreSolve callbacks to the owning character."""
-    def __init__(self, scene: "NScene2") -> None:
+    def __init__(self, scene: "NScene") -> None:
         """Capture the scene so contacts can be filtered.
 
         Args:
@@ -311,7 +311,7 @@ class NContactListener(b2ContactListener):
                 return
 
 
-class NScene2(Scene):
+class NScene(Scene):
     """Platformer scene with fighting characters and simple rendering."""
     def __init__(self) -> None:
         """Initialize scene storage for services, actors, and render targets.
@@ -336,7 +336,7 @@ class NScene2(Scene):
         self.add_service(SoundService)
         self.physics = self.add_service(PhysicsService)
         collision_names = ["walls"]
-        self.level = self.add_service(LevelService, "assets/levels/ngamerunnerlevel2.ldtk", "AutoLayer", collision_names)
+        self.level = self.add_service(LevelService, "assets/levels/ngame.ldtk", "Stage", collision_names)
 
     def init(self) -> None:
         """Create platforms, players, and render target.
