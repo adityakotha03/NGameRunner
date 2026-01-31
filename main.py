@@ -6,7 +6,7 @@ from samples.collecting_game import CollectingScene
 from samples.fighting_game import FightingScene
 from samples.zombie_game import ZombieScene
 from samples.title_screen import TitleScreen
-
+from samples.n_game import NScene
 
 game = Game()
 
@@ -26,9 +26,10 @@ def main() -> int:
     font_manager.set_texture_filter("Roboto", 4)
 
     game.add_scene("title", TitleScreen)
-    game.add_scene("fighting", FightingScene)
-    game.add_scene("collecting", CollectingScene)
-    game.add_scene("zombie", ZombieScene)
+    # game.add_scene("fighting", FightingScene)
+    # game.add_scene("collecting", CollectingScene)
+    # game.add_scene("zombie", ZombieScene)
+    game.add_scene("n", NScene)
 
     while not rl.window_should_close():
         update()
