@@ -245,6 +245,8 @@ class NCharacter(GameObject):
                 self.fall_through = False
 
         if rl.is_key_pressed(rl.KEY_SPACE) or rl.is_gamepad_button_pressed(self.gamepad, rl.GAMEPAD_BUTTON_RIGHT_FACE_RIGHT):
+            self.hit_sound.play()
+            self.hit_sound.set_volume(2.0)
             self.attack = True
             self.attack_display_timer = self.attack_display_duration
             position = self.body.get_position_pixels()
@@ -255,7 +257,7 @@ class NCharacter(GameObject):
                     continue
                 impulse = b2Vec2(-10.0 if self.animation.flip_x else 10.0, -10.0)
                 other_body.ApplyLinearImpulse(impulse=impulse, point=other_body.worldCenter, wake=True)
-                self.hit_sound.play()
+                # self.hit_sound.play()
 
         if self.attack_display_timer > 0.0:
             self.attack_display_timer = max(0.0, self.attack_display_timer - delta_time)
