@@ -245,7 +245,7 @@ class NCharacter(GameObject):
 
         if rl.is_key_pressed(rl.KEY_SPACE) or rl.is_gamepad_button_pressed(self.gamepad, rl.GAMEPAD_BUTTON_RIGHT_FACE_RIGHT):
             self.hit_sound.play()
-            self.hit_sound.set_volume(2.0)
+            self.hit_sound.set_volume(4.0)
             self.attack = True
             self.attack_display_timer = self.attack_display_duration
             position = self.body.get_position_pixels()
